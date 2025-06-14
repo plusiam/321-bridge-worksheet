@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-2-1 Bridge 학습 도구 Enhanced v2.2</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 자동 확장 textarea 스타일 */
+        .auto-resize-textarea {
+            resize: none;
+            min-height: 80px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            line-height: 1.8;
+        }
+
+        /* 캡처용 div 스타일 */
+        .capture-text-div {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.8;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            background-color: #fafafa;
+            min-height: 100px;
+        }
+
+        /* 입력 필드 한글 잘림 방지 */
+        input[type="text"], textarea {
+            line-height: 1.8 !important;
+            padding-top: 0.875rem !important;
+            padding-bottom: 0.875rem !important;
+        }
+
+        /* 진행률 바 애니메이션 */
+        .progress-fill {
+            transition: width 0.5s ease-out;
+        }
+
+        /* 저장 인디케이터 애니메이션 */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        .save-indicator {
+            animation: fadeInOut 2s ease-out;
+        }
+
+        /* 포커스 애니메이션 */
+        input:focus, textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            transition: all 0.2s ease;
+        }
+
+        /* 완료된 필드 표시 */
+        input.completed, textarea.completed {
+            background-color: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        /* 인쇄 스타일 - A4 가로형 1페이지 최적화 */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0.4cm 0.6cm;  /* 여백 더 축소 */
+            }
+
+            body {
+                background: white !important;
+                font-size: 9pt !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            /* placeholder 텍스트 완전 제거 */
+            input::placeholder,
+            textarea::placeholder {
+                color: transparent !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                display: none !important;
+            }
+
+            /* 전체 컨테이너 압축 */
+            #capture-area {
+                max-width: 100% !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+
+            /* 헤더 최소화 */
+            header {
+                padding-bottom: 5px !important;
+                margin-bottom: 4px !important;
+                border-bottom: 1px solid #333 !important;
+            }
+
+            header h1 {
+                font-size: 15pt !important;
+                margin: 0 !important;
+            }
+
+            header p {
+                font-size: 8pt !important;
+                margin: 2px 0 0 0 !important;
+            }
+
+            header .text-sm {
+                display: none !important;
+            }
+
+            /* 학생 정보 압축 */
+            section:first-of-type {
+                margin: 3px 0 !important;
+                padding: 0 !important;
+            }
+
+            section:first-of-type input {
+                width: 50px !important;
+                padding: 2px 4px !important;
+                height: 20px !important;
+                font-size: 8pt !important;
+            }
+
+            section:first-of-type input#name {
+                width: 70px !important;
+            }
+
+            section:first-of-type label {
+                font-size: 8pt !important;
+            }
+
+            /* 학습 주제 섹션 압축 */
+            .bg-indigo-50 {
+                background-color: #f0f0f0 !important;
+                border: 1px solid #666 !important;
+                padding: 4px 6px !important;
+                margin-bottom: 6px !important;
+            }
+
+            .bg-indigo-50 h2 {
+                font-size: 10pt !important;
+                margin: 0 0 3px 0 !important;
+            }
+
+            #topic {
+                height: 22px !important;
+                padding: 2px 4px !important;
+                font-size: 9pt !important;
+                background-color: white !important;
+            }
+
+            /* 메인 그리드 - 2단 압축 */
+            main {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                margin-bottom: 6px !important;
+            }
+
+            /* 각 섹션 스타일 압축 */
+            .bg-orange-50, .bg-green-50 {
+                background-color: white !important;
+                border: 1.5px solid #333 !important;
+                padding: 6px !important;
+                page-break-inside: avoid;
+            }
+
+            /* 섹션 제목 압축 */
+            main h2 {
+                font-size: 11pt !important;
+                margin: 0 0 4px 0 !important;
+                padding-bottom: 2px !important;
+                border-bottom: 1px solid #333 !important;
+            }
+
+            main h3 {
+                font-size: 9pt !important;
+                margin: 0 0 4px 0 !important;
+                font-weight: 600 !important;
+            }
+
+            /* 입력 필드 - 통합된 큰 텍스트 영역 */
+            main textarea, .auto-resize-textarea {
+                border: 1px solid #666 !important;
+                background-color: white !important;
+                padding: 4px 6px !important;
+                font-size: 9pt !important;
+                margin: 0 !important;
+                width: 100% !important;
+                line-height: 1.4 !important;
+            }
+            
+            /* 각 텍스트 영역별 높이 설정 - 1페이지 최적화 */
+            [data-field*="words"] {
+                height: 55px !important;
+                min-height: 55px !important;
+                max-height: 55px !important;
+            }
+            
+            [data-field*="questions"] {
+                height: 60px !important;
+                min-height: 60px !important;
+                max-height: 60px !important;
+            }
+            
+            [data-field*="metaphor"] {
+                height: 60px !important;
+                min-height: 60px !important;
+                max-height: 60px !important;
+            }
+
+            /* Bridge 섹션 압축 */
+            .bg-blue-50 {
+                background-color: #f0f0f0 !important;
+                border: 1.5px solid #333 !important;
+                padding: 6px !important;
+                margin: 0 !important;
+            }
+
+            .bg-blue-50 h2 {
+                font-size: 11pt !important;
+                margin: 0 0 4px 0 !important;
+                padding-bottom: 2px !important;
+                border-bottom: 1px solid #333 !important;
+            }
+
+            .bg-blue-50 label {
+                font-size: 9pt !important;
+                margin: 0 0 3px 0 !important;
+                display: block !important;
+            }
+
+            .bg-blue-50 textarea {
+                height: 70px !important;
+                min-height: 70px !important;
+                max-height: 70px !important;
+                background-color: white !important;
+            }
+
+            /* 공간 최적화 - 더 타이트하게 */
+            .space-y-6 > * {
+                margin-bottom: 8px !important;
+            }
+
+            .space-y-6 > *:last-child {
+                margin-bottom: 0 !important;
+            }
+
+            /* 페이지 나누기 완전 방지 */
+            * {
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div id="capture-area" class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <!-- 헤더 -->
+        <header class="text-center pb-6 border-b-2 border-gray-200">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">3-2-1 Bridge</h1>
+            <p class="text-gray-600">학습 전과 후의 생각을 연결하여 이해의 변화를 확인하는 활동</p>
+            <div class="text-sm text-gray-400 mt-2 no-print">Enhanced v2.2</div>
+        </header>
+
+        <!-- 학생 정보 -->
+        <section class="flex justify-end items-center gap-4 my-6">
+            <div class="flex items-center gap-2">
+                <label for="grade" class="font-semibold text-gray-700">학년:</label>
+                <input type="text" id="grade" class="w-16 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="class" class="font-semibold text-gray-700">반:</label>
+                <input type="text" id="class" class="w-16 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="number" class="font-semibold text-gray-700">번호:</label>
+                <input type="text" id="number" class="w-16 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="name" class="font-semibold text-gray-700">이름:</label>
+                <input type="text" id="name" class="w-24 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-300">
+            </div>
+        </section>
+
+        <!-- 학습 주제 (CSI에서 가져온 기능) -->
+        <section class="mb-8">
+            <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-200">
+                <h2 class="text-xl font-bold text-indigo-800 mb-3">학습 주제</h2>
+                <input type="text" id="topic" 
+                    class="w-full px-4 py-3 border-2 border-indigo-300 rounded-md bg-white focus:border-indigo-500 transition-colors"
+                    placeholder="오늘의 학습 주제를 입력하세요...">
+            </div>
+        </section>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- 학습 전 -->
+            <section class="bg-orange-50 p-6 rounded-lg border border-orange-200">
+                <h2 class="text-2xl font-bold text-orange-600 mb-4 pb-2 border-b-2 border-orange-300">
+                    Initial Response (학습 전)
+                </h2>
+                
+                <div class="space-y-6">
+                    <!-- 3 Words -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            3 Words: 핵심 단어 3가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="3개의 핵심 단어를 적어주세요" 
+                            data-field="initial-words"></textarea>
+                    </div>
+
+                    <!-- 2 Questions -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            2 Questions: 질문 2가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="2개의 질문을 적어주세요" 
+                            data-field="initial-questions"></textarea>
+                    </div>
+
+                    <!-- 1 Metaphor -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            1 Metaphor/Simile: 비유 1가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="'OO'은 마치 'XX' 같다. 왜냐하면..." 
+                            data-field="initial-metaphor"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 학습 후 -->
+            <section class="bg-green-50 p-6 rounded-lg border border-green-200">
+                <h2 class="text-2xl font-bold text-green-600 mb-4 pb-2 border-b-2 border-green-300">
+                    New Response (학습 후)
+                </h2>
+                
+                <div class="space-y-6">
+                    <!-- 3 Words -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            3 Words: 핵심 단어 3가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="3개의 핵심 단어를 적어주세요" 
+                            data-field="new-words"></textarea>
+                    </div>
+
+                    <!-- 2 Questions -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            2 Questions: 질문 2가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="2개의 질문을 적어주세요" 
+                            data-field="new-questions"></textarea>
+                    </div>
+
+                    <!-- 1 Metaphor -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            1 Metaphor/Simile: 비유 1가지
+                        </h3>
+                        <textarea class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                            placeholder="'OO'은 마치 'XX' 같다. 왜냐하면..." 
+                            data-field="new-metaphor"></textarea>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bridge 섹션 -->
+        <section class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-8">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4 pb-2 border-b-2 border-blue-300">
+                Bridge: 생각의 다리 놓기
+            </h2>
+            <label for="bridge-text" class="block font-semibold text-gray-800 mb-3">
+                학습 전에서 후로 당신의 생각은 어떻게, 그리고 왜 바뀌었나요?
+            </label>
+            <textarea id="bridge-text" class="auto-resize-textarea w-full px-3 py-2 border rounded-md" 
+                placeholder="처음 생각은 ...였지만, 배우고 나서 ...라고 바뀌었다. 왜냐하면..."
+                data-field="bridge"></textarea>
+        </section>
+
+        <!-- 진행률 표시 (새로운 기능) -->
+        <div class="no-print fixed bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="text-sm font-semibold text-gray-600">완성도</div>
+                <div class="w-32 bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="progress-fill bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <div id="progress-text" class="text-sm font-semibold text-gray-600">0%</div>
+            </div>
+        </div>
+
+        <!-- 저장 상태 표시 -->
+        <div id="save-indicator" class="no-print fixed bottom-4 right-4 hidden">
+            <div class="save-indicator bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                자동 저장됨
+            </div>
+        </div>
+
+        <!-- 버튼 영역 -->
+        <footer class="no-print mt-10 pt-6 border-t-2 border-gray-200">
+            <!-- 학생용 버튼 -->
+            <div class="text-center mb-6">
+                <p class="text-sm font-semibold text-green-600 mb-3">
+                    💡 학생용: 작성한 내용을 이미지로 저장하세요
+                </p>
+                <div class="flex justify-center gap-3">
+                    <button onclick="downloadAsImage()" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        이미지로 저장
+                    </button>
+                    <button onclick="resetForm()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        초기화
+                    </button>
+                </div>
+            </div>
+
+            <!-- 교사용 버튼 -->
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                <p class="text-sm font-semibold text-gray-600 mb-3">
+                    📋 교사용: A4 가로형 1페이지 인쇄
+                </p>
+                <button onclick="window.print()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 mx-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    A4 가로형 인쇄
+                </button>
+                <p class="text-xs text-gray-500 mt-2">
+                    ※ 인쇄 설정에서 '가로' 방향을 선택하세요
+                </p>
+            </div>
+
+            <!-- 개선사항 안내 -->
+            <div class="mt-6 text-center text-xs text-gray-400">
+                ✨ v2.2 개선사항: 1페이지 완벽 최적화 + 통합 입력칸 + 적절한 작성 공간
+            </div>
+        </footer>
+    </div>
+
+    <!-- 로딩 표시 -->
+    <div id="loading" class="no-print hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl flex items-center gap-3">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="text-lg font-semibold">이미지 생성 중...</span>
+        </div>
+    </div>
+
+    <script>
+        // 상수 정의
+        const STORAGE_KEY = '3-2-1-bridge-enhanced-v2.2';
+        let saveTimeout;
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAutoResizeTextareas();
+            setupAutoSave();
+            setupProgressTracking();
+            setupEnterKeyNavigation();
+            loadSavedData();
+            updateProgress();
+            
+            // 첫 번째 입력 필드에 포커스
+            document.getElementById('grade')?.focus();
+        });
+
+        // 자동 높이 조정 설정 (CSI에서 가져온 핵심 기능)
+        function setupAutoResizeTextareas() {
+            const textareas = document.querySelectorAll('.auto-resize-textarea');
+            
+            textareas.forEach(textarea => {
+                function autoResize() {
+                    textarea.style.height = 'auto';
+                    const newHeight = Math.max(80, textarea.scrollHeight + 2);
+                    textarea.style.height = newHeight + 'px';
+                }
+                
+                textarea.addEventListener('input', autoResize);
+                textarea.addEventListener('paste', () => setTimeout(autoResize, 10));
+                textarea.addEventListener('focus', autoResize);
+                
+                // 초기 높이 설정
+                if (textarea.value) {
+                    setTimeout(autoResize, 100);
+                }
+            });
+        }
+
+        // 자동 저장 설정
+        function setupAutoSave() {
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    autoSave();
+                    updateProgress();
+                    
+                    // 필드 완료 표시
+                    if (input.value.trim()) {
+                        input.classList.add('completed');
+                    } else {
+                        input.classList.remove('completed');
+                    }
+                });
+            });
+        }
+
+        // 자동 저장 함수
+        function autoSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const formData = {
+                    timestamp: new Date().toISOString(),
+                    data: {}
+                };
+                
+                document.querySelectorAll('[data-field]').forEach(element => {
+                    const field = element.getAttribute('data-field');
+                    formData.data[field] = element.value;
+                });
+                
+                // 학생 정보도 저장
+                ['grade', 'class', 'number', 'name', 'topic'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        formData.data[id] = element.value;
+                    }
+                });
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+                showSaveIndicator();
+            }, 500);
+        }
+
+        // 저장 상태 표시
+        function showSaveIndicator() {
+            const indicator = document.getElementById('save-indicator');
+            indicator.classList.remove('hidden');
+            setTimeout(() => {
+                indicator.classList.add('hidden');
+            }, 2000);
+        }
+
+        // 저장된 데이터 불러오기
+        function loadSavedData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const formData = JSON.parse(saved);
+                
+                // 필드별 데이터 복원
+                Object.keys(formData.data).forEach(field => {
+                    const element = document.querySelector(`[data-field="${field}"]`) || 
+                                  document.getElementById(field);
+                    if (element) {
+                        element.value = formData.data[field];
+                        if (element.value.trim()) {
+                            element.classList.add('completed');
+                        }
+                        
+                        // textarea 높이 조정
+                        if (element.classList.contains('auto-resize-textarea')) {
+                            element.style.height = 'auto';
+                            element.style.height = element.scrollHeight + 'px';
+                        }
+                    }
+                });
+            }
+        }
+
+        // 진행률 추적 설정
+        function setupProgressTracking() {
+            updateProgress();
+        }
+
+        // 진행률 업데이트
+        function updateProgress() {
+            const allFields = document.querySelectorAll('input[type="text"], textarea');
+            const filledFields = Array.from(allFields).filter(field => field.value.trim()).length;
+            const totalFields = allFields.length;
+            const percentage = Math.round((filledFields / totalFields) * 100);
+            
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = percentage + '%';
+            
+            // 색상 변경
+            if (percentage < 33) {
+                progressBar.className = 'progress-fill bg-red-500 h-2 rounded-full';
+            } else if (percentage < 66) {
+                progressBar.className = 'progress-fill bg-yellow-500 h-2 rounded-full';
+            } else {
+                progressBar.className = 'progress-fill bg-green-500 h-2 rounded-full';
+            }
+        }
+
+        // Enter 키 네비게이션 설정
+        function setupEnterKeyNavigation() {
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            
+            inputs.forEach((input, index) => {
+                if (input.tagName === 'INPUT') {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const nextInput = inputs[index + 1];
+                            if (nextInput) {
+                                nextInput.focus();
+                                if (nextInput.tagName === 'TEXTAREA') {
+                                    nextInput.setSelectionRange(0, 0);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // 개선된 이미지 다운로드 (CSI의 줄바꿈 보존 기법 적용)
+        async function downloadAsImage() {
+            const loading = document.getElementById('loading');
+            const captureArea = document.getElementById('capture-area');
+            
+            loading.classList.remove('hidden');
+            
+            // textarea 백업
+            const textareaBackups = [];
+            const textareas = captureArea.querySelectorAll('.auto-resize-textarea');
+            
+            try {
+                // textarea를 div로 임시 변환
+                textareas.forEach(textarea => {
+                    textareaBackups.push({
+                        element: textarea,
+                        parent: textarea.parentNode,
+                        value: textarea.value
+                    });
+                    
+                    const captureDiv = document.createElement('div');
+                    captureDiv.className = 'capture-text-div';
+                    captureDiv.textContent = textarea.value || textarea.placeholder;
+                    
+                    if (!textarea.value && textarea.placeholder) {
+                        captureDiv.style.color = '#9ca3af';
+                        captureDiv.style.fontStyle = 'italic';
+                    }
+                    
+                    textarea.parentNode.replaceChild(captureDiv, textarea);
+                });
+                
+                // 버튼 영역 숨기기
+                document.querySelector('footer').style.display = 'none';
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 캡처 실행
+                const canvas = await html2canvas(captureArea, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    useCORS: true
+                });
+                
+                // 다운로드
+                const link = document.createElement('a');
+                const studentName = document.getElementById('name').value || '학생';
+                const topic = document.getElementById('topic').value || '주제';
+                const date = new Date().toISOString().split('T')[0];
+                
+                const cleanTopic = topic.substring(0, 20).replace(/[^가-힣a-zA-Z0-9]/g, '');
+                link.download = `3-2-1_Bridge_${cleanTopic}_${studentName}_${date}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+                
+                showNotification('✨ 이미지가 성공적으로 저장되었습니다!');
+                
+            } catch (error) {
+                console.error('이미지 다운로드 오류:', error);
+                showNotification('❌ 이미지 저장에 실패했습니다. 다시 시도해주세요.', 'error');
+            } finally {
+                // 원래 상태로 복원
+                textareaBackups.forEach(backup => {
+                    const currentDiv = backup.parent.querySelector('.capture-text-div');
+                    if (currentDiv) {
+                        backup.parent.replaceChild(backup.element, currentDiv);
+                        backup.element.value = backup.value;
+                    }
+                });
+                
+                document.querySelector('footer').style.display = '';
+                loading.classList.add('hidden');
+                
+                // textarea 높이 재조정
+                setupAutoResizeTextareas();
+            }
+        }
+
+        // 폼 초기화
+        function resetForm() {
+            if (confirm('작성한 모든 내용이 지워집니다. 계속하시겠습니까?')) {
+                // 모든 입력 필드 초기화
+                document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                    input.value = '';
+                    input.classList.remove('completed');
+                    if (input.classList.contains('auto-resize-textarea')) {
+                        input.style.height = '80px';
+                    }
+                });
+                
+                // 로컬 스토리지 삭제
+                localStorage.removeItem(STORAGE_KEY);
+                
+                // 진행률 초기화
+                updateProgress();
+                
+                // 첫 번째 필드로 포커스
+                document.getElementById('grade')?.focus();
+                
+                showNotification('🔄 모든 내용이 초기화되었습니다.');
+            }
+        }
+
+        // 알림 표시 함수
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            
+            notification.className = `fixed top-5 right-5 ${bgColor} text-white py-3 px-6 rounded-lg shadow-lg z-50 flex items-center gap-2`;
+            notification.innerHTML = `
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                notification.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
